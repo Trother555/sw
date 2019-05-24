@@ -1,0 +1,22 @@
+version: "3"
+services:
+  syntax:
+    # replace username/repo:tag with your name and image details
+    image: oxaoo/mp4ru-service
+    ports:
+      - "2000:2000"
+    networks:
+      - sw_net
+  sw:
+    build: .
+    ports:
+      - "4000:8000"
+    networks:
+      - sw_net
+    volumes:
+      - .:/src
+    environment:
+      dockerized: 1
+      deps: all_res.csv
+networks:
+  sw_net:
