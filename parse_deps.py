@@ -10,12 +10,24 @@ from functools import partial
 
 import requests as rq
 from tqdm import tqdm
+import pymorphy2
+
+
+morph = pymorphy2.MorphAnalyzer()
 
 
 proxies = {
   "http": None,
   "https": None,
 }
+
+
+def get_declantion(word, feats):
+    if re.match(r'\w+[ая]$', word) and feats[2] != 'n':
+        return '1'
+    if feats[2] == 'f':
+        return '3'
+    return '2'
 
 
 def malt_parse(text, url='http://localhost:2000'):
@@ -30,6 +42,22 @@ def malt_parse(text, url='http://localhost:2000'):
     for it in res:
         if it['FEATS'] == 'SENT':
             break
+        # additional features for verb
+        if it['FEATS'][0] == 'V':
+            # transitivity
+            t = morph.parse(it['FORM'])[0].tag
+            if t.transitivity == 'intr':
+                it['FEATS'] += 'i'
+            elif t.transitivity == 'tran':
+                it['FEATS'] += 't'
+            # aspect
+            if t.aspect == 'impf':
+                it['FEATS'] += 'i'
+            elif t.aspect == 'perf':
+                it['FEATS'] += 'p'
+        # additional features for Noun
+        if it['FEATS'][0] == 'N':
+            it['FEATS'] += get_declantion(it['LEMMA'], it['FEATS'])
         r[it['ID']] = (it['FORM'], it['FEATS'], it['HEAD'], it['DEPREL'])
     return r
 
@@ -91,12 +119,25 @@ def dict_to_csv(csv_path, d):
             f.write(f'{k};{v}\n')
 
 
+deps_files = []
+samp_files = []
+
+
 def process_many(target_dir, res_dir, samples_dir):
+    del deps_files[:]
+    del samp_files[:]
+
     for corp in tqdm(glob(target_dir)):
         r, samples = process(corp)
         fname = os.path.basename(corp)
-        dict_to_csv(os.path.join(res_dir, fname), r)
-        dict_to_csv(os.path.join(samples_dir, fname), samples)
+
+        dep_path = os.path.join(res_dir, fname)
+        samp_path = os.path.join(samples_dir, fname)
+        deps_files.append(dep_path)
+        samp_files.append(samp_path)
+
+        dict_to_csv(dep_path, r)
+        dict_to_csv(samp_path, samples)
 
 
 def samp_to_dict(path):
@@ -113,13 +154,13 @@ def combine_processed(proc_dir, samp_dir, res_name='all_res.csv',
                       samp_name='all_samp.csv'):
     rules = Counter()
     print('Combining deps')
-    for corp in tqdm(glob(proc_dir)):
+    for corp in tqdm(deps_files):
         rules.update(csv_to_dict(corp))
     dict_to_csv(res_name, rules)
 
     print('Combining samples')
     samples = defaultdict(lambda: [])
-    for samp in tqdm(glob(samp_dir)):
+    for samp in tqdm(samp_files):
         samp_dict = samp_to_dict(samp)
         for k, v in samp_dict.items():
             samples[k] += v

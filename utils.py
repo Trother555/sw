@@ -1,6 +1,5 @@
 import json
 import urllib
-import string
 from functools import partial
 from collections import defaultdict, Counter
 import os
@@ -11,10 +10,10 @@ import nltk
 import jamspell
 
 corrector = jamspell.TSpellCorrector()
-corrector.LoadLangModel('ru_small.bin')
+corrector.LoadLangModel('./data/jamspell_model/ru_small.bin')
 
 
-nltk.data.path.append('./nltk_data')
+nltk.data.path.append('./data/nltk_data')
 
 
 proxies = {

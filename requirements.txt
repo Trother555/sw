@@ -2,3 +2,6 @@ Flask
 nltk
 tqdm
 requests
+pymorphy2
+pymorphy2-dicts
+DAWG-Python
