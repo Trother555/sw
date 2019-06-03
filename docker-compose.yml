@@ -17,6 +17,6 @@ services:
       - .:/src
     environment:
       dockerized: 1
-      deps: ./data/all_res.csv
+      deps: ./all_res.csv
 networks:
   sw_net:

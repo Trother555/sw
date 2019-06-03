@@ -77,12 +77,20 @@ def get_feats(dep):
 
 preps = {
     'n': [],
-    'g': ['от', 'без', 'у', 'до', 'возле', 'для', 'вокруг', 'с', 'a'],
+    'g': ['от', 'без', 'у', 'до', 'возле', 'для', 'вокруг', 'с', 'a', 'из'],
     'd': ['по', 'к'],
-    'a': ['на', 'за', 'через', 'про'],
+    'a': ['на', 'за', 'через', 'про', 'в', 'во'],
     'i': ['за', 'под', 'над', 'перед', 'с'],
     'l': ['о', 'на', 'в', 'об', 'при', 'обо', 'к'],
+    'v': []
 }
+
+
+with open('./data/possible_words.txt', 'r') as f:
+    lines = f.readlines()
+
+
+possible_words = [l.split()[0] for l in lines]
 
 
 def check_sent(sent, possible_deps):
@@ -94,6 +102,12 @@ def check_sent(sent, possible_deps):
     test_parsed = mparse(sent)
     test_deps, samples = extract_dependency_features([test_parsed])
     res = 0
+
+    for k, v in test_parsed.items():
+        if v[0] not in possible_words:
+            # print(v[0])
+            res += 1
+
     for key, val in samples.items():
         if key not in possible_deps:
             res += 1
@@ -105,7 +119,7 @@ def check_sent(sent, possible_deps):
                     prep = pair.split()[0]
                     if prep.lower() not in preps[fets[1][4]]:
                         # print(f'{prep} not case: {fets[1][4]}')
-                        # res += 1
+                        res += 1
                         pass
     return res
 
@@ -138,7 +152,7 @@ def generate_all_sentences(sentence, word_candidates, cur_word, res):
         res.append(sentence.copy())
         return
     if word_candidates[cur_word]:
-        for c in word_candidates[cur_word][:2]:
+        for c in word_candidates[cur_word][:3]:
             sentence[cur_word] = c
             generate_all_sentences(sentence, word_candidates, cur_word+1, res)
     else:
@@ -148,7 +162,7 @@ def generate_all_sentences(sentence, word_candidates, cur_word, res):
 def get_best_candidate(sentence, word_candidates):
     sents = []
     generate_all_sentences(sentence, word_candidates, 0, sents)
-    scores = sorted([(check(' '.join(s)), s) for s in sents[:300]],
+    scores = sorted([(check(' '.join(s)), s) for s in sents[:50]],
                     key=lambda x: x[0])
     #  print(scores)
     return scores[0][1]

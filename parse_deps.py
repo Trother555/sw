@@ -81,6 +81,19 @@ def csv_to_dict(csv_path):
 false_deps_dict = {}
 
 
+preps = {
+    'n': set([]),
+    'g': set(['от', 'без', 'у', 'до', 'возле', 'для', 'вокруг', 'с', 'a']),
+    'd': set(['по', 'к']),
+    'a': set(['на', 'за', 'через', 'про', 'в', 'во']),
+    'i': set(['за', 'под', 'над', 'перед', 'с']),
+    'l': set(['о', 'на', 'в', 'об', 'при', 'обо', 'к']),
+}
+
+
+prep_samples = defaultdict(lambda: [])
+
+
 def extract_dependency_features(data):
     res = Counter()
     samples = defaultdict(lambda: [])
@@ -96,6 +109,11 @@ def extract_dependency_features(data):
                 continue
             if rule in false_deps_dict:
                 continue
+
+            # существительное с предлогом - запомнить падеж
+            if head[1][0] == 'S' and val[1][0] == 'N':
+                preps[val[1][4]].add(head[0])
+                prep_samples[val[1][4]].append(f'{head[0]} {val[0]}')
             res[rule] += 1
             samples[rule].append(f'{head[0]} {val[0]}')
     return res, samples
@@ -138,6 +156,12 @@ def process_many(target_dir, res_dir, samples_dir):
 
         dict_to_csv(dep_path, r)
         dict_to_csv(samp_path, samples)
+
+    import pickle
+    with open('preps', 'w') as f:
+        pickle.dump(preps, f)
+    with open('preps_samps', 'w') as f:
+        pickle.dump(prep_samples, f)
 
 
 def samp_to_dict(path):
